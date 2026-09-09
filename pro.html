@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador Comercial - Versión PRO</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; }
+            .print-container { box-shadow: none !important; border: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-950 to-slate-900 min-h-screen p-4 md:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-2xl print-container border-t-8 border-purple-600">
+        
+        <!-- Panel de Configuración PRO -->
+        <div class="no-print bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-xl mb-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider mb-1 text-indigo-200">Logotipo Empresa:</label>
+                    <input type="file" id="logoInput" accept="image/*" onchange="subirLogo(event)" class="text-xs text-indigo-100 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white file:text-indigo-700 hover:file:bg-indigo-50 cursor-pointer">
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="exportarExcel()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-extrabold py-2 px-3 rounded-xl transition shadow">
+                    📊 Historial Excel
+                </button>
+                <button onclick="cerrarSesionPro()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-2 px-3 rounded-xl transition">
+                    Salir PRO
+                </button>
+            </div>
+        </div>
+
+        <!-- Encabezado con Logo -->
+        <div class="flex justify-between items-start border-b-2 border-purple-100 pb-4 mb-6">
+            <div>
+                <div id="logoWrapper" class="hidden mb-3">
+                    <img id="empresaLogo" src="" alt="Logo Empresa" class="h-16 w-auto object-contain rounded-lg">
+                </div>
+                <h1 class="text-2xl font-black text-indigo-950 tracking-tight">COTIZACIÓN DE SERVICIOS <span class="text-purple-600">PRO</span></h1>
+                <p class="text-xs font-medium text-purple-600">Usuario activo: <span id="lblUsuarioEmail" class="font-bold"></span></p>
+            </div>
+            <div class="text-right text-xs text-slate-600 space-y-1">
+                <p><strong>Fecha:</strong> <span id="fechaActual"></span></p>
+                <div class="flex items-center justify-end gap-1">
+                    <strong>Folio:</strong> 
+                    <input type="text" id="inputFolio" value="COT-PRO-001" class="border-2 border-purple-200 focus:border-purple-600 p-1 text-xs text-right rounded-lg w-28 outline-none font-bold text-purple-900">
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Registro Rápido de Productos Propios -->
+        <div class="no-print bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl mb-6 shadow-sm">
+            <h3 class="text-xs font-black text-slate-800 uppercase mb-2">📦 Registrar Nuevo Producto / SKU en mi Catálogo</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <input type="text" id="regSku" placeholder="Código / SKU (Ej. SERV01)" class="border-2 border-slate-200 p-2 text-xs rounded-xl outline-none focus:border-purple-600 bg-white">
+                <input type="text" id="regDesc" placeholder="Descripción del producto o servicio" class="border-2 border-slate-200 p-2 text-xs rounded-xl outline-none focus:border-purple-600 bg-white md:col-span-2">
+                <div class="flex gap-2">
+                    <input type="number" step="0.01" id="regPrecio" placeholder="Precio ($)" class="border-2 border-slate-200 p-2 text-xs rounded-xl outline-none focus:border-purple-600 bg-white w-full">
+                    <button onclick="guardarProductoPropio()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold py-2 px-3 rounded-xl transition whitespace-nowrap shadow">
+                        Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario Pro Interactivo -->
+        <div class="no-print space-y-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cliente / Empresa</label>
+    <input type="text" id="cliente" placeholder="Nombre del cliente PRO" oninput="generarVistaPrevia()" class="w-full border-2 border-slate-200 focus:border-purple-600 p-2.5 text-sm rounded-xl outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Moneda</label>
+                    <select id="moneda" class="w-full border-2 border-slate-200 focus:border-purple-600 p-2.5 text-sm rounded-xl outline-none transition bg-white" onchange="calcularTotales()">
+                        <option value="MXN">MXN ($)</option>
+                        <option value="USD">USD ($)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla con Autocompletado Automático por SKU -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Partidas / Conceptos (Escribe tu SKU en la descripción y haz clic fuera o presiona Tab)</label>
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="border-b-2 border-slate-200 text-xs text-slate-500 uppercase bg-slate-50">
+                            <th class="py-2 px-2 text-left rounded-l-lg">SKU / Descripción</th>
+                            <th class="py-2 px-2 text-center w-20">Cant.</th>
+                            <th class="py-2 px-2 text-right w-28">Precio Un.</th>
+                            <th class="py-2 px-2 text-right w-28">Importe</th>
+                            <th class="py-2 px-1 text-center w-10 rounded-r-lg"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaConceptos">
+                        <tr>
+                            <td class="py-2 px-2"><input type="text" placeholder="Escribe tu SKU o concepto" class="desc w-full border-2 border-slate-200 focus:border-purple-600 p-2 text-sm rounded-lg outline-none" onblur="buscarProductoPorSku(this)"></td>
+                            <td class="py-2 px-2"><input type="number" min="1" value="1" class="cant w-full border-2 border-slate-200 focus:border-purple-600 p-2 text-sm rounded-lg text-center outline-none" oninput="calcularTotales()"></td>
+                            <td class="py-2 px-2"><input type="number" step="0.01" min="0" value="0" class="precio w-full border-2 border-slate-200 focus:border-purple-600 p-2 text-sm rounded-lg text-right outline-none" oninput="calcularTotales()"></td>
+                            <td class="py-2 px-2 text-right font-bold text-slate-700 importe">$0.00</td>
+                            <td class="py-2 px-1 text-center"><button onclick="eliminarFila(this)" class="text-rose-500 hover:bg-rose-50 font-bold p-2 rounded-lg transition">✕</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button onclick="agregarFila()" class="mt-3 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-extrabold py-2 px-4 rounded-xl transition border border-purple-200">
+                    + Agregar Partida PRO
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Notas Comerciales</label>
+                    <textarea id="notas" placeholder="Términos, garantía, vigencia..." class="w-full border-2 border-slate-200 focus:border-purple-600 p-2.5 text-xs rounded-xl outline-none h-20 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Impuesto</label>
+                    <select id="aplicaIVA" onchange="calcularTotales()" class="w-full border-2 border-slate-200 focus:border-purple-600 p-2.5 text-sm rounded-xl outline-none bg-white">
+                        <option value="si">Aplicar IVA (16%)</option>
+                        <option value="no">Sin IVA</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista del Documento Generado -->
+        <div id="vistaDocumento" class="space-y-4">
+            <div class="bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl text-sm">
+                <p><strong>Cliente:</strong> <span id="docCliente">-</span></p>
+                
+                <table class="w-full mt-4 text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-300 text-xs text-slate-500 uppercase">
+                            <th class="py-2">Descripción</th>
+                            <th class="py-2 text-center">Cant.</th>
+                            <th class="py-2 text-right">Precio Un.</th>
+                            <th class="py-2 text-right">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody id="docItemsTabla"></tbody>
+                </table>
+
+                <div class="flex justify-end mt-4 border-t-2 border-slate-200 pt-3">
+                    <div class="w-1/2 text-right text-xs space-y-1">
+                        <p>Subtotal: <span id="valSubtotal">$0.00</span></p>
+                        <p>IVA (16%): <span id="valIVA">$0.00</span></p>
+                        <p class="text-base font-black text-indigo-950 border-t border-slate-300 pt-1">Total: <span id="valTotal">$0.00</span> <span id="lblMoneda">MXN</span></p>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-300 text-xs text-slate-600">
+                    <p><strong>Notas:</strong> <span id="docNotas">Ninguna</span></p>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="no-print flex justify-end gap-3 pt-2">
+                <button onclick="window.print()" class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-extrabold py-2.5 px-5 rounded-xl transition shadow-lg shadow-purple-200">
+                    🖨️ Imprimir o Guardar en PDF
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://jdjwuptjnkcpsidncckz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impkand1cHRqbmtjcHNpZG5jY2t6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NzkzNDksImV4cCI6MjEwNDQ1NTM0OX0.0zrOsp7qbbpcSfCvo9zCSLe5lgOXdv2UX22xrmVCvjs';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        window.onload = function() {
+            if (localStorage.getItem('pro_activo') !== 'true') {
+                alert("Acceso no autorizado.");
+                window.location.href = "index.html";
+                return;
+            }
+
+            const emailUser = localStorage.getItem('supabase_user_email') || 'Usuario PRO';
+            document.getElementById('lblUsuarioEmail').innerText = emailUser;
+            document.getElementById('fechaActual').innerText = new Date().toLocaleDateString();
+            cargarLogoGuardado();
+            calcularTotales();
+        };
+
+        function subirLogo(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                localStorage.setItem('pro_user_logo', base64);
+                mostrarLogo(base64);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function cargarLogoGuardado() {
+            const logo = localStorage.getItem('pro_user_logo');
+            if (logo) mostrarLogo(logo);
+        }
+
+        function mostrarLogo(src) {
+            const img = document.getElementById('empresaLogo');
+            img.src = src;
+            document.getElementById('logoWrapper').classList.remove('hidden');
+        }
+
+        // GUARDAR PRODUCTO PROPIO DEL USUARIO
+        async function guardarProductoPropio() {
+            const sku = document.getElementById('regSku').value.trim();
+            const descripcion = document.getElementById('regDesc').value.trim();
+            const precio = parseFloat(document.getElementById('regPrecio').value) || 0;
+            const email_usuario = localStorage.getItem('supabase_user_email');
+
+            if (!sku || !descripcion) {
+                alert("Por favor completa el SKU y la descripción.");
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('productos')
+                .insert([{ email_usuario, sku, descripcion, precio }]);
+
+            if (error) {
+                alert("Error al guardar: " + error.message);
+                return;
+            }
+
+            alert("¡Producto registrado en tu catálogo con éxito!");
+            document.getElementById('regSku').value = '';
+            document.getElementById('regDesc').value = '';
+            document.getElementById('regPrecio').value = '';
+        }
+
+        // BUSCAR AUTOMÁTICAMENTE AL SALIR DEL CAMPO DE SKU
+        async function buscarProductoPorSku(inputElement) {
+            const skuBuscado = inputElement.value.trim();
+            if (!skuBuscado) return;
+
+            const email_usuario = localStorage.getItem('supabase_user_email');
+            const fila = inputElement.closest('tr');
+
+            try {
+                // Busca en Supabase el producto que coincida con el SKU y pertenezca al usuario actual
+                const { data, error } = await supabaseClient
+                    .from('productos')
+                    .select('*')
+                    .eq('email_usuario', email_usuario)
+                    .eq('sku', skuBuscado)
+                    .maybeSingle();
+
+                if (data) {
+                    // Autocompleta descripción y precio unitario
+                    inputElement.value = data.descripcion;
+                    fila.querySelector('.precio').value = data.precio;
+                    calcularTotales();
+                }
+            } catch (err) {
+                console.log("No se encontró el SKU en el catálogo personal.");
+            }
+        }
+
+        function agregarFila() {
+            const tbody = document.getElementById('tablaConceptos');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-2 px-2"><input type="text" placeholder="Escribe tu SKU o concepto" class="desc w-full border-2 border-slate-200 focus:border-purple-600 p-2 text-sm rounded-lg outline-none" onblur="buscarProductoPorSku(this)"></td>
+                <td class="py-2 px-2"><input type="number" min="1" value="1" class="cant w-full border-2 border-slate-200 focus:border-purple-600 p-2 text-sm rounded-lg text-center outline-none" oninput="calcularTotales()"></td>
+                <td class="py-2 px-2"><input type="number" step="0.01" min="0" value="0" class="precio w-full border-2 border-slate-200 focus:border-purple-600 p-2 text-sm rounded-lg text-right outline-none" oninput="calcularTotales()"></td>
+                <td class="py-2 px-2 text-right font-bold text-slate-700 importe">$0.00</td>
+                <td class="py-2 px-1 text-center"><button onclick="eliminarFila(this)" class="text-rose-500 hover:bg-rose-50 font-bold p-2 rounded-lg transition">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+            calcularTotales();
+        }
+
+        function eliminarFila(btn) {
+            const tbody = document.getElementById('tablaConceptos');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                calcularTotales();
+            }
+        }
+
+        function calcularTotales() {
+            let subtotal = 0;
+            const moneda = document.getElementById('moneda').value;
+            const filas = document.querySelectorAll('#tablaConceptos tr');
+
+            filas.forEach(fila => {
+                const cant = parseFloat(fila.querySelector('.cant').value) || 0;
+                const precio = parseFloat(fila.querySelector('.precio').value) || 0;
+                const totalLinea = cant * precio;
+                subtotal += totalLinea;
+                fila.querySelector('.importe').innerText = `$${totalLinea.toFixed(2)}`;
+            });
+
+            const aplicaIVA = document.getElementById('aplicaIVA').value;
+            const iva = (aplicaIVA === 'si') ? subtotal * 0.16 : 0;
+            const totalFinal = subtotal + iva;
+
+            document.getElementById('valSubtotal').innerText = `$${subtotal.toFixed(2)}`;
+            document.getElementById('valIVA').innerText = `$${iva.toFixed(2)}`;
+            document.getElementById('valTotal').innerText = `${totalFinal.toFixed(2)}`;
+            document.getElementById('lblMoneda').innerText = moneda;
+
+            generarVistaPrevia();
+        }
+
+        function generarVistaPrevia() {
+    const inputCliente = document.getElementById('cliente').value.trim();
+    const cliente = inputCliente !== "" ? inputCliente : 'Sin especificar';
+    const notas = document.getElementById('notas').value || 'Ninguna';
+    
+    document.getElementById('docCliente').innerText = cliente;
+    document.getElementById('docNotas').innerText = notas;
+
+    const docTabla = document.getElementById('docItemsTabla');
+    docTabla.innerHTML = '';
+
+    document.querySelectorAll('#tablaConceptos tr').forEach(fila => {
+        const desc = fila.querySelector('.desc').value || 'Servicio PRO';
+        const cant = fila.querySelector('.cant').value || '1';
+        const precio = parseFloat(fila.querySelector('.precio').value) || 0;
+        const importe = cant * precio;
+
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-200';
+        tr.innerHTML = `
+            <td class="py-2">${desc}</td>
+            <td class="py-2 text-center">${cant}</td>
+            <td class="py-2 text-right">$${precio.toFixed(2)}</td>
+            <td class="py-2 text-right">$${importe.toFixed(2)}</td>
+        `;
+        docTabla.appendChild(tr);
+    });
+
+    guardarHistorialLocal();
+    }
+            
+
+        function guardarHistorialLocal() {
+            const cliente = document.getElementById('cliente').value;
+            const folio = document.getElementById('inputFolio').value;
+            const total = document.getElementById('valTotal').innerText;
+
+            let historial = JSON.parse(localStorage.getItem('pro_historial')) || [];
+            historial.push({ fecha: new Date().toLocaleDateString(), folio, cliente, total });
+            localStorage.setItem('pro_historial', JSON.stringify(historial));
+        }
+
+        function exportarExcel() {
+            let historial = JSON.parse(localStorage.getItem('pro_historial')) || [];
+            if (historial.length === 0) {
+                alert("No hay cotizaciones para exportar.");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,Fecha,Folio,Cliente,Total\n";
+            historial.forEach(item => {
+                csvContent += `${item.fecha},${item.folio},"${item.cliente}",${item.total}\n`;
+            });
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Historial_Cotizaciones_PRO.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function cerrarSesionPro() {
+            localStorage.removeItem('pro_activo');
+            window.location.href = "index.html";
+        }
+    </script>
+</body>
+</html>

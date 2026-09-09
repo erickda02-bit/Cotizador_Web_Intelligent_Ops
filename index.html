@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador Comercial - Versión Free</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background-color: white !important; }
+            .print-container { box-shadow: none !important; border: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 min-h-screen p-4 md:p-8 font-sans">
+
+    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-2xl print-container border-t-8 border-indigo-600">
+        
+        <!-- Panel Superior / Acceso Pro y Compra -->
+        <div class="no-print bg-gradient-to-r from-amber-500 to-orange-500 text-white p-4 rounded-xl mb-6 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-sm font-black uppercase tracking-wider mb-0.5">🚀 Versión Gratuita</h2>
+                <p class="text-xs text-amber-100">Desbloquea logotipos, búsqueda de productos en la nube y múltiples monedas.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Botón de Compra PRO actualizado -->
+                <a href="https://wa.me/526251501846?text=QUIERO%20QUE%20MIS%20COTIZACIONES%20SEAN%20DINAMICAS%20Y%20ATRACTIVAS%20PARA%20EL%20CLIENTE" target="_blank" class="bg-white text-orange-600 hover:bg-orange-50 font-extrabold text-xs py-2 px-3 rounded-lg transition shadow flex items-center gap-1">
+                    🛒 Comprar Código PRO
+                </a>
+                <div class="flex items-center gap-1 bg-black/20 p-1 rounded-lg">
+                    <input type="text" id="codigoAcceso" placeholder="Tu código de licencia" class="bg-white text-slate-800 placeholder-slate-400 p-1.5 text-xs rounded outline-none w-36">
+                    <button onclick="verificarCodigoPro()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-3 rounded-lg transition">
+                        🔑 Entrar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Encabezado del Documento -->
+        <div class="flex justify-between items-start border-b-2 border-indigo-100 pb-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-black text-indigo-950 tracking-tight">COTIZACIÓN DE SERVICIOS</h1>
+                <p class="text-xs font-medium text-indigo-500">Documento de oferta comercial (Versión Free)</p>
+            </div>
+            <div class="text-right text-xs text-slate-600">
+                <p><strong>Fecha:</strong> <span id="fechaActual"></span></p>
+                <p><strong>Folio:</strong> COT-001</p>
+            </div>
+        </div>
+
+        <!-- Formulario Interactivo -->
+        <div class="no-print space-y-5 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cliente / Empresa</label>
+                    <input type="text" id="cliente" placeholder="Nombre del cliente" class="w-full border-2 border-slate-200 focus:border-indigo-600 p-2.5 text-sm rounded-xl outline-none transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Moneda</label>
+                    <select id="moneda" class="w-full border-2 border-slate-200 focus:border-indigo-600 p-2.5 text-sm rounded-xl outline-none transition bg-white" onchange="calcularTotales()">
+                        <option value="MXN">MXN ($)</option>
+                        <option value="USD">USD ($)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tabla de Partidas -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Conceptos / Partidas</label>
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="border-b-2 border-slate-200 text-xs text-slate-500 uppercase bg-slate-50">
+                            <th class="py-2 px-2 text-left rounded-l-lg">Descripción</th>
+                            <th class="py-2 px-2 text-center w-20">Cant.</th>
+                            <th class="py-2 px-2 text-right w-28">Precio Un.</th>
+                            <th class="py-2 px-2 text-right w-28">Importe</th>
+                            <th class="py-2 px-1 text-center w-10 rounded-r-lg"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaConceptos">
+                        <tr>
+                            <td class="py-2 px-2"><input type="text" placeholder="Concepto o servicio" class="desc w-full border-2 border-slate-200 focus:border-indigo-500 p-2 text-sm rounded-lg outline-none"></td>
+                            <td class="py-2 px-2"><input type="number" min="1" value="1" class="cant w-full border-2 border-slate-200 focus:border-indigo-500 p-2 text-sm rounded-lg text-center outline-none" oninput="calcularTotales()"></td>
+                            <td class="py-2 px-2"><input type="number" step="0.01" min="0" value="0" class="precio w-full border-2 border-slate-200 focus:border-indigo-500 p-2 text-sm rounded-lg text-right outline-none" oninput="calcularTotales()"></td>
+                            <td class="py-2 px-2 text-right font-bold text-slate-700 importe">$0.00</td>
+                            <td class="py-2 px-1 text-center"><button onclick="eliminarFila(this)" class="text-rose-500 hover:bg-rose-50 font-bold p-2 rounded-lg transition">✕</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <button onclick="agregarFila()" class="mt-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-extrabold py-2 px-4 rounded-xl transition border border-indigo-200">
+                    + Agregar otra partida
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Notas / Términos</label>
+                    <textarea id="notas" placeholder="Condiciones de pago, vigencia..." class="w-full border-2 border-slate-200 focus:border-indigo-600 p-2.5 text-xs rounded-xl outline-none h-20 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Aplicar Impuesto</label>
+                    <select id="aplicaIVA" onchange="calcularTotales()" class="w-full border-2 border-slate-200 focus:border-indigo-600 p-2.5 text-sm rounded-xl outline-none bg-white">
+                        <option value="si">Aplicar IVA (16%)</option>
+                        <option value="no">Sin IVA</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista del Documento Final -->
+        <div id="vistaDocumento" class="space-y-4">
+            <div class="bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl text-sm">
+                <p><strong>Cliente:</strong> <span id="docCliente">-</span></p>
+                
+                <div class="mt-4 overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-300 text-xs text-slate-500 uppercase">
+                                <th class="py-2">Descripción</th>
+                                <th class="py-2 text-center">Cant.</th>
+                                <th class="py-2 text-right">Precio Un.</th>
+                                <th class="py-2 text-right">Importe</th>
+                            </tr>
+                        </thead>
+                        <tbody id="docItemsTabla"></tbody>
+                    </table>
+                </div>
+
+                <div class="flex justify-end mt-4 border-t-2 border-slate-200 pt-3">
+                    <div class="w-1/2 text-right text-xs space-y-1">
+                        <p>Subtotal: <span id="valSubtotal">$0.00</span></p>
+                        <p id="filaIVAContainer">IVA (16%): <span id="valIVA">$0.00</span></p>
+                        <p class="text-base font-black text-indigo-950 border-t border-slate-300 pt-1">Total: <span id="valTotal">$0.00</span> <span id="lblMoneda">MXN</span></p>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-3 border-t border-slate-300 text-xs text-slate-600">
+                    <p><strong>Notas:</strong> <span id="docNotas">Ninguna</span></p>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="no-print flex justify-end gap-3 pt-2">
+                <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition shadow-lg shadow-indigo-200">
+                    🖨️ Imprimir / Guardar PDF
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://jdjwuptjnkcpsidncckz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impkand1cHRqbmtjcHNpZG5jY2t6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NzkzNDksImV4cCI6MjEwNDQ1NTM0OX0.0zrOsp7qbbpcSfCvo9zCSLe5lgOXdv2UX22xrmVCvjs';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        window.onload = function() {
+            document.getElementById('fechaActual').innerText = new Date().toLocaleDateString();
+            calcularTotales();
+        };
+
+        function agregarFila() {
+            const tbody = document.getElementById('tablaConceptos');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="py-2 px-2"><input type="text" placeholder="Concepto o servicio" class="desc w-full border-2 border-slate-200 focus:border-indigo-500 p-2 text-sm rounded-lg outline-none"></td>
+                <td class="py-2 px-2"><input type="number" min="1" value="1" class="cant w-full border-2 border-slate-200 focus:border-indigo-500 p-2 text-sm rounded-lg text-center outline-none" oninput="calcularTotales()"></td>
+                <td class="py-2 px-2"><input type="number" step="0.01" min="0" value="0" class="precio w-full border-2 border-slate-200 focus:border-indigo-500 p-2 text-sm rounded-lg text-right outline-none" oninput="calcularTotales()"></td>
+                <td class="py-2 px-2 text-right font-bold text-slate-700 importe">$0.00</td>
+                <td class="py-2 px-1 text-center"><button onclick="eliminarFila(this)" class="text-rose-500 hover:bg-rose-50 font-bold p-2 rounded-lg transition">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+            calcularTotales();
+        }
+
+        function eliminarFila(btn) {
+            const tbody = document.getElementById('tablaConceptos');
+            if (tbody.children.length > 1) {
+                btn.closest('tr').remove();
+                calcularTotales();
+            }
+        }
+
+        function calcularTotales() {
+            let subtotal = 0;
+            const moneda = document.getElementById('moneda').value;
+            const filas = document.querySelectorAll('#tablaConceptos tr');
+
+            filas.forEach(fila => {
+                const cant = parseFloat(fila.querySelector('.cant').value) || 0;
+                const precio = parseFloat(fila.querySelector('.precio').value) || 0;
+                const totalLinea = cant * precio;
+                subtotal += totalLinea;
+                fila.querySelector('.importe').innerText = `$${totalLinea.toFixed(2)}`;
+            });
+
+            const aplicaIVA = document.getElementById('aplicaIVA').value;
+            const iva = (aplicaIVA === 'si') ? subtotal * 0.16 : 0;
+            const totalFinal = subtotal + iva;
+
+            document.getElementById('valSubtotal').innerText = `$${subtotal.toFixed(2)}`;
+            document.getElementById('valIVA').innerText = `$${iva.toFixed(2)}`;
+            document.getElementById('valTotal').innerText = `${totalFinal.toFixed(2)}`;
+            document.getElementById('lblMoneda').innerText = moneda;
+
+            generarVistaPrevia();
+        }
+
+        function generarVistaPrevia() {
+            const cliente = document.getElementById('cliente').value || 'Cliente General';
+            const notas = document.getElementById('notas').value || 'Ninguna';
+            document.getElementById('docCliente').innerText = cliente;
+            document.getElementById('docNotas').innerText = notas;
+
+            const docTabla = document.getElementById('docItemsTabla');
+            docTabla.innerHTML = '';
+
+            document.querySelectorAll('#tablaConceptos tr').forEach(fila => {
+                const desc = fila.querySelector('.desc').value || 'Servicio / Producto';
+                const cant = fila.querySelector('.cant').value || '1';
+                const precio = parseFloat(fila.querySelector('.precio').value) || 0;
+                const importe = cant * precio;
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-200';
+                tr.innerHTML = `
+                    <td class="py-2">${desc}</td>
+                    <td class="py-2 text-center">${cant}</td>
+                    <td class="py-2 text-right">$${precio.toFixed(2)}</td>
+                    <td class="py-2 text-right">$${importe.toFixed(2)}</td>
+                `;
+                docTabla.appendChild(tr);
+            });
+        }
+
+        async function verificarCodigoPro() {
+            const codigoInput = document.getElementById('codigoAcceso').value.trim();
+            if (!codigoInput) {
+                alert("Por favor, ingresa tu código de licencia.");
+                return;
+            }
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('usuarios_pro')
+                    .select('*')
+                    .eq('codigo_licencia', codigoInput)
+                    .maybeSingle();
+
+                if (error) { alert("Error: " + error.message); return; }
+                if (!data) { alert("Código de licencia no válido."); return; }
+
+                localStorage.setItem('pro_activo', 'true');
+                localStorage.setItem('supabase_user_email', data.email || codigoInput);
+                
+                alert("¡Acceso Pro verificado con éxito! Redirigiendo...");
+                window.location.href = "pro.html";
+            } catch (err) {
+                alert("Error técnico: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
