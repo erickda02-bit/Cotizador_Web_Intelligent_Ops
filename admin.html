@@ -126,15 +126,17 @@
                 console.error("Error:", error);
                 resultadoDiv.innerHTML = `<span class="text-red-400">Error técnico: ${error.message}</span>`;
             } else {
-              // 1. Escribe el texto normal con emojis y saltos de línea reales (\n)
-                const mensajeBase = `¡Hola! Tu pago ha sido confirmado con éxito. 🚀\n\nTu código de acceso exclusivo para la versión PRO es:\n*${codigoGenerado}*\n\nPuedes ingresar a tu plataforma en la nube y comenzar a cotizar. ¡Gracias!`;
+                // Construir el mensaje con concatenación limpia y codificación de URL segura
+                const emojiCohete = "🚀";
+                const mensajeBase = "¡Hola! Tu pago ha sido confirmado con éxito. " + emojiCohete + "\n\n" +
+                                    "Tu código de acceso exclusivo para la versión PRO es:\n" +
+                                    "*" + codigoGenerado + "*\n\n" +
+                                    "Puedes ingresar a tu plataforma en la nube y comenzar a cotizar. ¡Gracias!";
 
-// 2. Codifica todo el texto automáticamente para que WhatsApp lo lea perfecto
                 const urlWhatsApp = `https://wa.me/${telefonoCliente}?text=${encodeURIComponent(mensajeBase)}`;
-
-// 3. Abrir WhatsApp
-                window.open(urlWhatsApp, '_blank');
                 
+                window.open(urlWhatsApp, '_blank');
+
                 resultadoDiv.innerHTML = `<span class="text-emerald-400 font-bold">¡Licencia procesada y WhatsApp abierto con éxito! 🎉</span>`;
                 emailInput.value = '';
                 waInput.value = '';
