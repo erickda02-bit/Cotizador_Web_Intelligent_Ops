@@ -127,7 +127,7 @@
                 resultadoDiv.innerHTML = `<span class="text-red-400">Error técnico: ${error.message}</span>`;
             } else {
                 // Construir el mensaje con concatenación limpia y codificación de URL segura
-                const emojiCohete = "🚀";
+                const emojiCohete = "\u{1F680}";
                 const mensajeBase = "¡Hola! Tu pago ha sido confirmado con éxito. " + emojiCohete + "\n\n" +
                                     "Tu código de acceso exclusivo para la versión PRO es:\n" +
                                     "*" + codigoGenerado + "*\n\n" +
