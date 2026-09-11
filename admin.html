@@ -58,13 +58,13 @@
     </div>
 
     <script>
-        // CONFIGURACIÓN DE SUPABASE (Las mismas credenciales que usas en tu proyecto)
-        const SUPABASE_URL = 'https://jdjwuptjnkcpsidncckz.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impkand1cHRqbmtjcHNpZG5jY2t6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NzkzNDksImV4cCI6MjEwNDQ1NTM0OX0.0zrOsp7qbbpcSfCvo9zCSLe5lgOXdv2UX22xrmVCvjs';
+        // CONFIGURACIÓN DE SUPABASE (Asegúrate de poner tus credenciales reales)
+        const SUPABASE_URL = 'https://TU-SUPABASE-URL.supabase.co';
+        const SUPABASE_ANON_KEY = 'TU-SUPABASE-ANON-KEY';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // PON AQUÍ TU CORREO DE ADMINISTRADOR
-        const CORREO_ADMIN_OFICIAL = "erickda02@gmail.com";
+        // CORREO DEL ADMINISTRADOR OFICIAL
+        const CORREO_ADMIN_OFICIAL = "tu-correo-admin@tudominio.com";
 
         function verificarAccesoAdmin() {
             const emailIngresado = document.getElementById('adminEmailInput').value.trim();
@@ -112,23 +112,26 @@
             const randomNum2 = Math.floor(1000 + Math.random() * 9000);
             const codigoGenerado = `PRO-${randomNum1}-${randomNum2}`;
 
-            resultadoDiv.innerHTML = `<span class="text-slate-400">Guardando licencia en Supabase...</span>`;
+            resultadoDiv.innerHTML = `<span class="text-slate-400">Procesando licencia en Supabase...</span>`;
 
-            // Insertar en Supabase
+            // UPSERT: Si el correo ya existe, actualiza la licencia; si no, lo crea nuevo sin errores
             const { error } = await supabaseClient
                 .from('usuarios_pro')
-                .insert([{ email_usuario: emailCliente, codigo_licencia: codigoGenerado }]);
+                .upsert(
+                    [ { email_usuario: emailCliente, codigo_licencia: codigoGenerado } ],
+                    { onConflict: 'email_usuario' }
+                );
 
             if (error) {
                 console.error("Error:", error);
-                resultadoDiv.innerHTML = `<span class="text-red-400">Error: ¿Ya existe una licencia con este correo?</span>`;
+                resultadoDiv.innerHTML = `<span class="text-red-400">Error técnico: ${error.message}</span>`;
             } else {
                 const mensajeTexto = `¡Hola! Tu pago ha sido confirmado con éxito. 🚀%0A%0ATu código de acceso exclusivo para la versión PRO es:%0A*${codigoGenerado}*%0A%0APuedes ingresar a tu plataforma en la nube y comenzar a cotizar. ¡Gracias!`;
                 const urlWhatsApp = `https://wa.me/${telefonoCliente}?text=${mensajeTexto}`;
                 
                 window.open(urlWhatsApp, '_blank');
 
-                resultadoDiv.innerHTML = `<span class="text-emerald-400 font-bold">¡Licencia creada y WhatsApp abierto con éxito! 🎉</span>`;
+                resultadoDiv.innerHTML = `<span class="text-emerald-400 font-bold">¡Licencia procesada y WhatsApp abierto con éxito! 🎉</span>`;
                 emailInput.value = '';
                 waInput.value = '';
             }
