@@ -126,16 +126,20 @@
                 console.error("Error:", error);
                 resultadoDiv.innerHTML = `<span class="text-red-400">Error técnico: ${error.message}</span>`;
             } else {
-                // Construir el mensaje con concatenación limpia y codificación de URL segura
-                const emojiCohete = "\u{1F680}";
-                const mensajeBase = "¡Hola! Tu pago ha sido confirmado con éxito. " + emojiCohete + "\n\n" +
-                                    "Tu código de acceso exclusivo para la versión PRO es:\n" +
+                // Emojis seguros codificados mediante secuencias de escape universal (evita problemas de codificación UTF-8 en editores)
+                const cohete = "\uD83D\uDE80";
+                const llave = "\uD83D\uDD11";
+                const fuego = "\uD83D\uDD25";
+
+                const mensajeBase = "¡Hola! " + cohete + " Tu pago ha sido confirmado con éxito.\n\n" +
+                                    llave + " Tu código de acceso exclusivo para la versión PRO es:\n" +
                                     "*" + codigoGenerado + "*\n\n" +
-                                    "Puedes ingresar a tu plataforma en la nube y comenzar a cotizar. ¡Gracias!";
+                                    "Puedes ingresar a tu plataforma en la nube y comenzar a cotizar al máximo rendimiento " + fuego + ". ¡Muchas gracias!";
 
                 const urlWhatsApp = `https://wa.me/${telefonoCliente}?text=${encodeURIComponent(mensajeBase)}`;
                 
                 window.open(urlWhatsApp, '_blank');
+
                 resultadoDiv.innerHTML = `<span class="text-emerald-400 font-bold">¡Licencia procesada y WhatsApp abierto con éxito! 🎉</span>`;
                 emailInput.value = '';
                 waInput.value = '';
